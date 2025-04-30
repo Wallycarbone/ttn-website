@@ -37,24 +37,111 @@ app.post('/api/fact-check', (req, res) => {
   res.json({ success: true, message: 'Your fact check request has been received.' });
 });
 
-// Serve static files from the 'static' directory
+// Define directories and paths
 const staticDir = path.join(__dirname, 'static');
-const indexPath = path.join(staticDir, 'index.html');
+const publicDir = path.join(__dirname, 'public');
+let indexPath = path.join(staticDir, 'index.html');
 
 // Log the paths for debugging
 console.log('Static directory:', staticDir);
-console.log('Index path:', indexPath);
-console.log('Directory exists?', fs.existsSync(staticDir));
-console.log('Index exists?', fs.existsSync(indexPath));
+console.log('Static directory exists?', fs.existsSync(staticDir));
 
-// Create a public directory for compatibility
-const publicDir = path.join(__dirname, 'public');
-if (!fs.existsSync(publicDir)) {
+try {
+  // List all files in static directory for debugging
+  if (fs.existsSync(staticDir)) {
+    console.log('Files in static directory:');
+    const files = fs.readdirSync(staticDir);
+    files.forEach(file => {
+      const filePath = path.join(staticDir, file);
+      const stats = fs.statSync(filePath);
+      console.log(`  ${file} (${stats.isDirectory() ? 'directory' : 'file'})`);
+    });
+  }
+} catch (error) {
+  console.error('Error reading static directory:', error);
+}
+
+// Create a fallback index.html if we can't find one
+if (!fs.existsSync(indexPath)) {
+  console.log('Could not find index.html in static directory');
+  
+  // Create public directory for fallback
+  if (!fs.existsSync(publicDir)) {
+    try {
+      fs.mkdirSync(publicDir, { recursive: true });
+      console.log('Created public directory:', publicDir);
+    } catch (error) {
+      console.error('Error creating public directory:', error);
+    }
+  }
+  
+  // Create fallback index.html in public directory
+  const publicIndexPath = path.join(publicDir, 'index.html');
   try {
-    fs.mkdirSync(publicDir, { recursive: true });
-    console.log('Created public directory:', publicDir);
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>The Truth Networks</title>
+      <style>
+        body { 
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+          line-height: 1.5;
+          margin: 0;
+          padding: 0;
+        }
+        .header {
+          background-color: #276EF1;
+          color: white;
+          padding: 2rem 0;
+          text-align: center;
+        }
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+        }
+        .content {
+          padding: 2rem 0;
+        }
+        .footer {
+          background-color: #0B1D3A;
+          color: white;
+          padding: 2rem 0;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="container">
+          <h1>The Truth Networks</h1>
+          <p>Fighting misinformation and promoting media literacy in a digital age.</p>
+        </div>
+      </div>
+      <div class="content">
+        <div class="container">
+          <h2>Welcome to The Truth Networks</h2>
+          <p>Our website is currently being updated. Please check back soon for more information.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="container">
+          <p>&copy; ${new Date().getFullYear()} The Truth Networks. All rights reserved.</p>
+          <p>165 Northern Blvd, Germantown, NY 12526 | info@thetruthnetworks.com</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+    
+    fs.writeFileSync(publicIndexPath, htmlContent);
+    console.log('Created fallback index.html in public directory');
+    indexPath = publicIndexPath;
   } catch (error) {
-    console.error('Error creating public directory:', error);
+    console.error('Error creating fallback index.html:', error);
   }
 }
 
