@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "The Truth Networks website",
   "main": "render-server.js",
+  "type": "module",
   "scripts": {
     "start": "node render-server.js"
   },
