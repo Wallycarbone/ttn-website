@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ttn-website
+    env: node
+    buildCommand: npm install && node build.js
+    startCommand: node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: PGDATABASE
+        sync: false
+      - key: PGHOST
+        sync: false
+      - key: PGPASSWORD
+        sync: false
+      - key: PGPORT
+        sync: false
+      - key: PGUSER
+        sync: false
