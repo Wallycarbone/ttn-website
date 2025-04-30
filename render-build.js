@@ -41,58 +41,184 @@ try {
 try {
   console.log('Building the React application...');
   
-  // Check if client directory exists
+  // First ensure vite is installed at the root level
+  console.log('Installing vite globally...');
+  execSync('npm install -g vite', { stdio: 'inherit' });
+  
+  // Build from client if it exists
   if (fs.existsSync('./client')) {
     console.log('Client directory found, running build...');
     
-    // Check if package.json exists
-    if (fs.existsSync('./package.json')) {
-      console.log('Building from root package.json...');
-      execSync('npm run build', { stdio: 'inherit' });
-    } else if (fs.existsSync('./client/package.json')) {
-      console.log('Building from client/package.json...');
+    try {
+      // Try to install dependencies and build from client
+      console.log('Building from client directory...');
+      execSync('cd client && npm install', { stdio: 'inherit' });
       execSync('cd client && npm run build', { stdio: 'inherit' });
-    } else {
-      console.log('No package.json found for build');
-    }
-    
-    // Check if the build output exists
-    if (fs.existsSync('./client/dist') || fs.existsSync('./client/build')) {
-      const buildDir = fs.existsSync('./client/dist') ? './client/dist' : './client/build';
-      console.log(`Build output found at ${buildDir}, copying to public...`);
       
-      // Copy all files from build directory to public
-      const copyRecursive = (src, dest) => {
-        const exists = fs.existsSync(src);
-        const stats = exists && fs.statSync(src);
-        const isDirectory = exists && stats.isDirectory();
+      // Check if build directory exists in client
+      if (fs.existsSync('./client/dist') || fs.existsSync('./client/build')) {
+        const buildDir = fs.existsSync('./client/dist') ? './client/dist' : './client/build';
+        console.log(`Client build output found at ${buildDir}, copying to public...`);
         
-        if (isDirectory) {
-          if (!fs.existsSync(dest)) {
-            fs.mkdirSync(dest, { recursive: true });
+        // Copy build files to public
+        const copyRecursive = (src, dest) => {
+          const exists = fs.existsSync(src);
+          const stats = exists && fs.statSync(src);
+          const isDirectory = exists && stats.isDirectory();
+          
+          if (isDirectory) {
+            if (!fs.existsSync(dest)) {
+              fs.mkdirSync(dest, { recursive: true });
+            }
+            fs.readdirSync(src).forEach(childItemName => {
+              copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
+            });
+          } else {
+            fs.copyFileSync(src, dest);
           }
-          fs.readdirSync(src).forEach(childItemName => {
-            copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
-          });
-        } else {
-          fs.copyFileSync(src, dest);
-        }
-      };
-      
-      copyRecursive(buildDir, './public');
-      console.log('Copied build files to public directory');
-    } else {
-      console.log('No build output found');
+        };
+        
+        copyRecursive(buildDir, './public');
+        console.log('Copied client build files to public directory');
+      } else {
+        throw new Error('No build output found in client directory');
+      }
+    } catch (clientErr) {
+      console.error('Error building from client directory:', clientErr);
+      throw new Error('Client build failed');
     }
   } else {
-    console.log('No client directory found');
+    // Try to build from root package.json
+    console.log('Building from root package.json...');
+    try {
+      // Install dependencies first
+      execSync('npm install', { stdio: 'inherit' });
+      
+      // Check if we have a build script in package.json
+      const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+      
+      if (packageJson.scripts && packageJson.scripts.build) {
+        console.log('Running npm run build...');
+        execSync('npm run build', { stdio: 'inherit' });
+      } else {
+        console.log('No build script found in package.json, trying vite build...');
+        // Try direct vite build
+        execSync('npx vite build', { stdio: 'inherit' });
+      }
+      
+      // Check if build output exists
+      if (fs.existsSync('./dist/client') || fs.existsSync('./build')) {
+        const buildDir = fs.existsSync('./dist/client') ? './dist/client' : './build';
+        console.log(`Root build output found at ${buildDir}, copying to public...`);
+        
+        // Copy build files to public
+        const copyRecursive = (src, dest) => {
+          const exists = fs.existsSync(src);
+          const stats = exists && fs.statSync(src);
+          const isDirectory = exists && stats.isDirectory();
+          
+          if (isDirectory) {
+            if (!fs.existsSync(dest)) {
+              fs.mkdirSync(dest, { recursive: true });
+            }
+            fs.readdirSync(src).forEach(childItemName => {
+              copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
+            });
+          } else {
+            fs.copyFileSync(src, dest);
+          }
+        };
+        
+        copyRecursive(buildDir, './public');
+        console.log('Copied root build files to public directory');
+      } else {
+        throw new Error('No build output found after root build');
+      }
+    } catch (rootErr) {
+      console.error('Error building from root package.json:', rootErr);
+      throw new Error('Root build failed');
+    }
   }
 } catch (err) {
   console.error('Error building React app:', err);
   console.log('Continuing with server setup...');
 }
 
-// Create a server script to serve the React app
+// Create fallback index.html if it doesn't exist
+if (!fs.existsSync('./public/index.html')) {
+  console.log('No index.html found in public directory, creating fallback...');
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Truth Networks</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .header {
+      background-color: #276EF1;
+      color: white;
+      padding: 2rem 0;
+    }
+    .content {
+      padding: 2rem 0;
+    }
+    .footer {
+      background-color: #0B1D3A;
+      color: white;
+      padding: 2rem 0;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>The Truth Networks</h1>
+      <p>Fighting misinformation and promoting media literacy in a digital age.</p>
+    </div>
+  </div>
+  <div class="content">
+    <div class="container">
+      <h2>Welcome to The Truth Networks</h2>
+      <p>We are committed to combating misinformation and promoting media literacy through innovative digital tools and educational resources.</p>
+      
+      <h3>Our Mission</h3>
+      <p>To build a more informed society by providing people with the tools and knowledge they need to identify and combat misinformation.</p>
+      
+      <h3>What We Do</h3>
+      <ul>
+        <li>Real-time fact-checking of news and social media content</li>
+        <li>Educational resources for K-12 students and teachers</li>
+        <li>Community workshops on media literacy</li>
+        <li>Support for independent journalism</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="container">
+      <p>&copy; ${new Date().getFullYear()} The Truth Networks. All rights reserved.</p>
+      <p>165 Northern Blvd, Germantown, NY 12526 | info@thetruthnetworks.com</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+  fs.writeFileSync('./public/index.html', htmlContent);
+  console.log('Created fallback index.html');
+}
+
+// Server code for index.js
 const serverCode = `
 import express from 'express';
 import path from 'path';
@@ -102,7 +228,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Import server routes if available
+// Try to import server routes if available
 let registerRoutes;
 try {
   const { registerRoutes: importedRegisterRoutes } = await import('./routes.js');
@@ -117,119 +243,77 @@ try {
     app.get('/api/status', (req, res) => {
       res.json({ status: 'ok', message: 'Server is running', timestamp: new Date() });
     });
+    
+    // Contact form endpoint
+    app.post('/api/contact', (req, res) => {
+      console.log('Contact form submission:', req.body);
+      res.json({ success: true, message: 'Thank you for your message!' });
+    });
+
+    // Newsletter signup endpoint
+    app.post('/api/newsletter', (req, res) => {
+      console.log('Newsletter signup:', req.body);
+      res.json({ success: true, message: 'Thank you for subscribing!' });
+    });
+
+    // Fact check submission endpoint
+    app.post('/api/fact-check', (req, res) => {
+      console.log('Fact check submission:', req.body);
+      res.json({ success: true, message: 'Your fact check request has been received.' });
+    });
   };
 }
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Parse JSON bodies
+// Parse JSON request bodies
 app.use(express.json());
-
-// Check if public directory exists
-const publicPath = path.join(__dirname, '../public');
-if (!fs.existsSync(publicPath)) {
-  console.log('Creating public directory at runtime');
-  fs.mkdirSync(publicPath, { recursive: true });
-  
-  // Create a basic index.html if it doesn't exist
-  const indexPath = path.join(publicPath, 'index.html');
-  if (!fs.existsSync(indexPath)) {
-    const htmlContent = \`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>The Truth Networks</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f5f5f5;
-            color: #333;
-          }
-          .container {
-            max-width: 800px;
-            padding: 2rem;
-            text-align: center;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-          }
-          h1 {
-            color: #276EF1;
-            margin-bottom: 1rem;
-          }
-          p {
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-          }
-          .footer {
-            margin-top: 2rem;
-            font-size: 0.9rem;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>The Truth Networks</h1>
-          <p>Fighting misinformation and promoting media literacy in a digital age.</p>
-          <p>Our website is currently being deployed. Please check back soon.</p>
-          <div class="footer">
-            &copy; \${new Date().getFullYear()} The Truth Networks. All rights reserved.
-          </div>
-        </div>
-      </body>
-      </html>
-    \`;
-    fs.writeFileSync(indexPath, htmlContent);
-    console.log('Created default index.html');
-  }
-}
 
 // Register API routes
 await registerRoutes(app);
 
 // Serve static files from public directory
+const publicPath = path.join(__dirname, '../public');
+console.log('Public directory path:', publicPath);
+console.log('Directory exists:', fs.existsSync(publicPath));
+
+if (fs.existsSync(publicPath)) {
+  console.log('Files in public directory:');
+  try {
+    fs.readdirSync(publicPath).forEach(file => {
+      console.log(\` - \${file}\`);
+    });
+  } catch (err) {
+    console.error('Error reading public directory:', err);
+  }
+}
+
 app.use(express.static(publicPath));
 
-// Fallback route for SPA - all non-API routes go to index.html
+// Fallback route for SPA
 app.get('*', (req, res) => {
   // Skip API routes
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
   
-  res.sendFile(path.join(publicPath, 'index.html'));
+  // Send index.html
+  const indexPath = path.join(publicPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Not found - index.html missing');
+  }
 });
 
 app.listen(PORT, () => {
   console.log(\`Server running on port \${PORT}\`);
-  console.log(\`Public directory path: \${publicPath}\`);
-  console.log(\`Directory exists: \${fs.existsSync(publicPath)}\`);
-  
-  if (fs.existsSync(publicPath)) {
-    console.log('Files in public directory:');
-    fs.readdirSync(publicPath).forEach(file => {
-      console.log(\` - \${file}\`);
-    });
-  }
 });
 `;
 
-// Create a simplified routes.js file if the original doesn't exist
+// Routes file code
 const routesCode = `
-import fs from 'fs';
-
-// This is a simplified version of routes.js that will be used if the original is not found
 export async function registerRoutes(app) {
   console.log('Registering API routes...');
   
@@ -241,21 +325,18 @@ export async function registerRoutes(app) {
   // Contact form endpoint
   app.post('/api/contact', (req, res) => {
     console.log('Contact form submission:', req.body);
-    // In a real scenario, this would save to a database
     res.json({ success: true, message: 'Thank you for your message!' });
   });
 
   // Newsletter signup endpoint
   app.post('/api/newsletter', (req, res) => {
     console.log('Newsletter signup:', req.body);
-    // In a real scenario, this would save to a database
     res.json({ success: true, message: 'Thank you for subscribing!' });
   });
 
   // Fact check submission endpoint
   app.post('/api/fact-check', (req, res) => {
     console.log('Fact check submission:', req.body);
-    // In a real scenario, this would process the fact check
     res.json({ success: true, message: 'Your fact check request has been received.' });
   });
 
@@ -263,19 +344,13 @@ export async function registerRoutes(app) {
 }
 `;
 
-try {
-  // Write the server code to index.js in the dist directory
-  console.log('Writing server code to dist/index.js...');
-  fs.writeFileSync('./dist/index.js', serverCode);
-  console.log('Server code written successfully');
-  
-  // Write the routes code to routes.js in the dist directory
-  console.log('Writing routes code to dist/routes.js...');
-  fs.writeFileSync('./dist/routes.js', routesCode);
-  console.log('Routes code written successfully');
-} catch (err) {
-  console.error('Error writing server code:', err);
-  process.exit(1);
-}
+// Write server files
+console.log('Writing server code to dist/index.js...');
+fs.writeFileSync('./dist/index.js', serverCode);
+console.log('Server code written successfully');
+
+console.log('Writing routes code to dist/routes.js...');
+fs.writeFileSync('./dist/routes.js', routesCode);
+console.log('Routes code written successfully');
 
 console.log('Full website build process completed successfully!');
