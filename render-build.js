@@ -11,6 +11,11 @@ if (!fs.existsSync('./dist')) {
   fs.mkdirSync('./dist', { recursive: true });
 }
 
+// Make sure the public directory exists
+if (!fs.existsSync('./public')) {
+  fs.mkdirSync('./public', { recursive: true });
+}
+
 // Create a simple Express server for serving static files
 const serverCode = `
 import express from 'express';
@@ -21,9 +26,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// Serve static files
+// For Render deployment
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Fallback route for SPA
@@ -36,11 +41,8 @@ app.listen(PORT, () => {
 });
 `;
 
-// Create a sample HTML file if public directory doesn't exist
-if (!fs.existsSync('./public')) {
-  fs.mkdirSync('./public', { recursive: true });
-  
-  const htmlContent = `
+// Create a sample HTML file if one doesn't exist
+const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,17 +89,17 @@ if (!fs.existsSync('./public')) {
   <div class="container">
     <h1>The Truth Networks</h1>
     <p>Fighting misinformation and promoting media literacy in a digital age.</p>
-    <p>Our website is currently being deployed. Please check back soon.</p>
+    <p>Our full website is being deployed. Please check back in a few minutes.</p>
     <div class="footer">
       &copy; ${new Date().getFullYear()} The Truth Networks. All rights reserved.
     </div>
   </div>
 </body>
 </html>
-  `;
-  
-  fs.writeFileSync('./public/index.html', htmlContent);
-}
+`;
+
+// Write the index.html file to the public directory
+fs.writeFileSync('./public/index.html', htmlContent);
 
 // Write the server code to index.js in the dist directory
 fs.writeFileSync('./dist/index.js', serverCode);
