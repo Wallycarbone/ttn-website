@@ -1,7 +1,12 @@
 // render-build.js - Special build script for Render.com
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('Starting Render deployment build process...');
 
@@ -25,9 +30,35 @@ try {
 // Step 2: Create a simple client/index.html file
 console.log('Building client assets...');
 try {
-  // Copy the existing client/index.html to dist/client
-  fs.copyFileSync('client/index.html', 'dist/client/index.html');
-  console.log('Client index.html copied successfully');
+  // Try to copy the existing client/index.html to dist/client
+  try {
+    fs.copyFileSync('client/index.html', 'dist/client/index.html');
+    console.log('Client index.html copied successfully');
+  } catch (err) {
+    // Create a basic index.html file if copy fails
+    console.log('Creating fallback index.html...');
+    fs.writeFileSync('dist/client/index.html', `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>The Truth Networks</title>
+      <script src="/bundle.js" defer></script>
+      <style>
+        body { font-family: system-ui, sans-serif; text-align: center; padding: 2rem; }
+        h1 { color: #276EF1; }
+      </style>
+    </head>
+    <body>
+      <div id="root">
+        <h1>The Truth Networks</h1>
+        <p>Website is being deployed...</p>
+      </div>
+    </body>
+    </html>
+    `);
+  }
   
   // Create a basic bundle.js file for client
   fs.writeFileSync('dist/client/bundle.js', `
@@ -45,11 +76,13 @@ try {
 console.log('Creating startup file...');
 fs.writeFileSync('dist/index.js', `
 // This is a simple server wrapper for Render.com
-// It requires and starts the server
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Import the server module
-const express = require('express');
-const path = require('path');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
