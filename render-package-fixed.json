@@ -1,0 +1,13 @@
+{
+  "name": "ttn-website",
+  "version": "1.0.0",
+  "description": "The Truth Networks Website",
+  "type": "module",
+  "main": "render-server-fixed.js",
+  "scripts": {
+    "start": "node render-server-fixed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
