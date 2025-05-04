@@ -1,44 +1,20 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-
-    /* Paths */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./client/src/*"],
-      "@assets/*": ["./client/src/assets/*"],
-      "@components/*": ["./client/src/components/*"],
-      "@hooks/*": ["./client/src/hooks/*"],
-      "@lib/*": ["./client/src/lib/*"],
-      "@pages/*": ["./client/src/pages/*"],
-      "@shared/*": ["./shared/*"]
-    }
+    "jsx": "react-jsx"
   },
-  "include": [
-    "client/src/**/*.ts",
-    "client/src/**/*.tsx",
-    "shared/**/*.ts",
-    "server/**/*.ts",
-    "client/src/vite-env.d.ts"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }
